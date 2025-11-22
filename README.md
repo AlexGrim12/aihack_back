@@ -1,4 +1,4 @@
- # AIHack Backend
+# AIHack Backend
 
 Backend API desarrollado con FastAPI para aplicación Flutter, con autenticación JWT y PostgreSQL.
 
@@ -24,11 +24,13 @@ Backend API desarrollado con FastAPI para aplicación Flutter, con autenticació
 1. **Asegúrate de tener Docker y Docker Compose instalados**
 
 2. **Iniciar todos los servicios**
+
    ```bash
    docker-compose up -d
    ```
 
    Esto iniciará:
+
    - PostgreSQL en puerto 5432
    - Backend FastAPI en puerto 8000
 
@@ -44,28 +46,33 @@ Documentación interactiva: `http://localhost:8000/docs`
 ### Opción 2: Desarrollo Local
 
 1. **Clonar el repositorio**
+
    ```bash
    cd aihack_back
    ```
 
 2. **Crear entorno virtual**
+
    ```bash
    python -m venv venv
    source venv/bin/activate  # En Windows: venv\Scripts\activate
    ```
 
 3. **Instalar dependencias**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 4. **Configurar variables de entorno**
+
    ```bash
    cp .env.example .env
    # Editar .env con tus configuraciones
    ```
 
 5. **Iniciar PostgreSQL con Docker**
+
    ```bash
    docker-compose up -d postgres
    ```
@@ -95,6 +102,7 @@ aihack_back/
 ## Endpoints de Autenticación
 
 ### Registro de Usuario
+
 ```http
 POST /auth/register
 Content-Type: application/json
@@ -107,6 +115,7 @@ Content-Type: application/json
 ```
 
 ### Login
+
 ```http
 POST /auth/login
 Content-Type: application/json
@@ -118,6 +127,7 @@ Content-Type: application/json
 ```
 
 ### Obtener Usuario Actual
+
 ```http
 GET /auth/me
 Authorization: Bearer {token}
@@ -128,12 +138,14 @@ Authorization: Bearer {token}
 Para integrar este backend con tu app Flutter:
 
 1. Instala el paquete `http` o `dio`:
+
    ```yaml
    dependencies:
      dio: ^5.0.0
    ```
 
 2. Ejemplo de login en Flutter:
+
    ```dart
    import 'package:dio/dio.dart';
 
@@ -157,31 +169,37 @@ Para integrar este backend con tu app Flutter:
 ## Docker
 
 ### Iniciar todos los servicios
+
 ```bash
 docker-compose up -d
 ```
 
 ### Iniciar solo base de datos
+
 ```bash
 docker-compose up -d postgres
 ```
 
 ### Reconstruir imagen del backend
+
 ```bash
 docker-compose up -d --build backend
 ```
 
 ### Detener servicios
+
 ```bash
 docker-compose down
 ```
 
 ### Detener y eliminar volúmenes
+
 ```bash
 docker-compose down -v
 ```
 
 ### Ver logs
+
 ```bash
 # Todos los servicios
 docker-compose logs -f
@@ -194,11 +212,13 @@ docker-compose logs -f postgres
 ```
 
 ### Acceder al contenedor del backend
+
 ```bash
 docker-compose exec backend bash
 ```
 
 ### Acceder a PostgreSQL
+
 ```bash
 docker-compose exec postgres psql -U postgres -d aihack_db
 ```
@@ -206,6 +226,7 @@ docker-compose exec postgres psql -U postgres -d aihack_db
 ## Comandos Útiles
 
 ### Crear migraciones con Alembic (opcional)
+
 ```bash
 alembic init alembic
 alembic revision --autogenerate -m "Initial migration"
@@ -213,6 +234,7 @@ alembic upgrade head
 ```
 
 ### Ejecutar tests
+
 ```bash
 pytest
 ```
