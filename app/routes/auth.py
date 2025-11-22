@@ -132,3 +132,4 @@ async def get_me(current_user: User = Depends(get_current_user)):
     Get current authenticated user information
     """
     return UserResponse.from_orm(current_user)
+
