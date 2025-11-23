@@ -6,7 +6,7 @@ import asyncio
 from pathlib import Path
 from app.database import engine, Base
 from app.routes import auth_router, metro_router, fall_detection_router, incident_reports_router
-from app.utils.metro_simulator import metro_simulator
+from app.utils.metro_simulator import metro_simulator, metro_simulator_line2
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,16 +17,23 @@ async def lifespan(app: FastAPI):
     # Crear directorio de storage para audios
     Path("storage/incidents").mkdir(parents=True, exist_ok=True)
     
-    # Iniciar simulación del metro en background
-    simulation_task = asyncio.create_task(metro_simulator.update_loop())
+    # Iniciar simulación de ambas líneas del metro en background
+    simulation_task_line1 = asyncio.create_task(metro_simulator.update_loop())
+    simulation_task_line2 = asyncio.create_task(metro_simulator_line2.update_loop())
     
     yield
     
-    # Shutdown: Detener simulación
+    # Shutdown: Detener simulaciones de ambas líneas
     metro_simulator.stop()
-    simulation_task.cancel()
+    metro_simulator_line2.stop()
+    simulation_task_line1.cancel()
+    simulation_task_line2.cancel()
     try:
-        await simulation_task
+        await simulation_task_line1
+    except asyncio.CancelledError:
+        pass
+    try:
+        await simulation_task_line2
     except asyncio.CancelledError:
         pass
 

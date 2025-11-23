@@ -5,7 +5,7 @@ from typing import List, Dict, Literal
 from app.schemas.metro import Train, Station, LineStatus
 
 # Configuración de estaciones de la Línea 1
-STATIONS = [
+STATIONS_LINE1 = [
     {"id": "observatorio", "name": "Observatorio", "lat": 19.3986, "lng": -99.2009},
     {"id": "tacubaya", "name": "Tacubaya", "lat": 19.4033, "lng": -99.1876},
     {"id": "juanacatlan", "name": "Juanacatlán", "lat": 19.4121, "lng": -99.1826},
@@ -28,6 +28,37 @@ STATIONS = [
     {"id": "pantitlan", "name": "Pantitlán", "lat": 19.4153, "lng": -99.0733}
 ]
 
+# Configuración de estaciones de la Línea 2 (Azul)
+STATIONS_LINE2 = [
+    {"id": "l2_cuatro_caminos", "name": "Cuatro Caminos", "lat": 19.459444, "lng": -99.215833},
+    {"id": "l2_panteones", "name": "Panteones", "lat": 19.458611, "lng": -99.203056},
+    {"id": "l2_tacuba", "name": "Tacuba", "lat": 19.459167, "lng": -99.187500},
+    {"id": "l2_cuitlahuac", "name": "Cuitláhuac", "lat": 19.457500, "lng": -99.182222},
+    {"id": "l2_popotla", "name": "Popotla", "lat": 19.452222, "lng": -99.175556},
+    {"id": "l2_colegio_militar", "name": "Colegio Militar", "lat": 19.449167, "lng": -99.171389},
+    {"id": "l2_normal", "name": "Normal", "lat": 19.444722, "lng": -99.167778},
+    {"id": "l2_san_cosme", "name": "San Cosme", "lat": 19.442778, "lng": -99.162500},
+    {"id": "l2_revolucion", "name": "Revolución", "lat": 19.439444, "lng": -99.154444},
+    {"id": "l2_hidalgo", "name": "Hidalgo", "lat": 19.437222, "lng": -99.146944},
+    {"id": "l2_bellas_artes", "name": "Bellas Artes", "lat": 19.436111, "lng": -99.141389},
+    {"id": "l2_allende", "name": "Allende", "lat": 19.435833, "lng": -99.137500},
+    {"id": "l2_zocalo", "name": "Zócalo", "lat": 19.432778, "lng": -99.132778},
+    {"id": "l2_pino_suarez", "name": "Pino Suárez", "lat": 19.425700, "lng": -99.133000},
+    {"id": "l2_san_antonio_abad", "name": "San Antonio Abad", "lat": 19.415833, "lng": -99.134167},
+    {"id": "l2_chabacano", "name": "Chabacano", "lat": 19.408889, "lng": -99.135278},
+    {"id": "l2_viaducto", "name": "Viaducto", "lat": 19.399722, "lng": -99.137222},
+    {"id": "l2_xola", "name": "Xola", "lat": 19.395556, "lng": -99.137778},
+    {"id": "l2_villa_de_cortes", "name": "Villa de Cortés", "lat": 19.389444, "lng": -99.139167},
+    {"id": "l2_nativitas", "name": "Nativitas", "lat": 19.383889, "lng": -99.140556},
+    {"id": "l2_portales", "name": "Portales", "lat": 19.378056, "lng": -99.141944},
+    {"id": "l2_ermita", "name": "Ermita", "lat": 19.372500, "lng": -99.143333},
+    {"id": "l2_general_anaya", "name": "General Anaya", "lat": 19.365833, "lng": -99.145000},
+    {"id": "l2_tasquena", "name": "Tasqueña", "lat": 19.357778, "lng": -99.143333}
+]
+
+# Mantener STATIONS para compatibilidad con código existente (Línea 1)
+STATIONS = STATIONS_LINE1
+
 INCIDENT_MESSAGES = {
     "delay": [
         "Retraso de 5 minutos por afluencia",
@@ -47,7 +78,28 @@ INCIDENT_MESSAGES = {
 }
 
 class MetroSimulator:
-    def __init__(self):
+    def __init__(self, line_number=1, stations_config=None, line_name="Línea 1", route="Observatorio ↔ Pantitlán", 
+                 direction_a="Pantitlán", direction_b="Observatorio", train_prefix="T10"):
+        """
+        Inicializa el simulador de metro
+        
+        Args:
+            line_number: Número de línea (1 o 2)
+            stations_config: Lista de estaciones a usar (por defecto usa STATIONS_LINE1)
+            line_name: Nombre de la línea para respuestas
+            route: Ruta de la línea
+            direction_a: Primera dirección de viaje
+            direction_b: Segunda dirección de viaje
+            train_prefix: Prefijo para IDs de trenes (ej: "T10" para T101, T102...)
+        """
+        self.line_number = line_number
+        self.stations_config = stations_config or STATIONS_LINE1
+        self.line_name = line_name
+        self.route = route
+        self.direction_a = direction_a
+        self.direction_b = direction_b
+        self.train_prefix = train_prefix
+        
         self.trains: List[Dict] = []
         self.stations_data: List[Dict] = []
         self.incident_type: Literal["none", "delay", "incident", "maintenance"] = "none"
@@ -62,21 +114,21 @@ class MetroSimulator:
         num_trains = 7
         for i in range(num_trains):
             # Distribuir trenes uniformemente en la línea
-            station_index = int((len(STATIONS) - 1) * i / num_trains)
-            current_station = STATIONS[station_index]
+            station_index = int((len(self.stations_config) - 1) * i / num_trains)
+            current_station = self.stations_config[station_index]
             
             # Alternar direcciones
             if i % 2 == 0:
-                direction = "Pantitlán"
-                next_station_index = min(station_index + 1, len(STATIONS) - 1)
+                direction = self.direction_a
+                next_station_index = min(station_index + 1, len(self.stations_config) - 1)
             else:
-                direction = "Observatorio"
+                direction = self.direction_b
                 next_station_index = max(station_index - 1, 0)
             
-            next_station = STATIONS[next_station_index]
+            next_station = self.stations_config[next_station_index]
             
             train = {
-                "train_id": f"T10{i+1}",
+                "train_id": f"{self.train_prefix}{i+1}",
                 "current_station_index": station_index,
                 "next_station_index": next_station_index,
                 "current_station": current_station["name"],
@@ -117,24 +169,24 @@ class MetroSimulator:
                 train["current_station_index"] = train["next_station_index"]
                 
                 # Determinar siguiente estación según dirección
-                if train["direction"] == "Pantitlán":
-                    if train["current_station_index"] >= len(STATIONS) - 1:
+                if train["direction"] == self.direction_a:
+                    if train["current_station_index"] >= len(self.stations_config) - 1:
                         # Cambiar dirección en terminal
-                        train["direction"] = "Observatorio"
+                        train["direction"] = self.direction_b
                         train["next_station_index"] = train["current_station_index"] - 1
                     else:
                         train["next_station_index"] = train["current_station_index"] + 1
-                else:  # Observatorio
+                else:  # direction_b
                     if train["current_station_index"] <= 0:
                         # Cambiar dirección en terminal
-                        train["direction"] = "Pantitlán"
+                        train["direction"] = self.direction_a
                         train["next_station_index"] = train["current_station_index"] + 1
                     else:
                         train["next_station_index"] = train["current_station_index"] - 1
                 
                 # Actualizar nombres de estaciones
-                train["current_station"] = STATIONS[train["current_station_index"]]["name"]
-                train["next_station"] = STATIONS[train["next_station_index"]]["name"]
+                train["current_station"] = self.stations_config[train["current_station_index"]]["name"]
+                train["next_station"] = self.stations_config[train["next_station_index"]]["name"]
                 
                 # Nueva velocidad aleatoria
                 train["speed"] = random.uniform(0.015, 0.025)
@@ -163,7 +215,7 @@ class MetroSimulator:
         """Actualiza los datos de todas las estaciones"""
         self.stations_data = []
         
-        for i, station_info in enumerate(STATIONS):
+        for i, station_info in enumerate(self.stations_config):
             # Buscar trenes cercanos a esta estación
             trains_near = []
             for train in self.trains:
@@ -236,8 +288,8 @@ class MetroSimulator:
             active_trains.append(train_data)
         
         return LineStatus(
-            line_name="Línea 1",
-            route="Observatorio ↔ Pantitlán",
+            line_name=self.line_name,
+            route=self.route,
             saturation=saturation,
             incident_type=self.incident_type,
             incident_message=self.incident_message,
@@ -261,5 +313,25 @@ class MetroSimulator:
         """Detiene el loop de simulación"""
         self.is_running = False
 
-# Instancia global del simulador
-metro_simulator = MetroSimulator()
+# Instancias globales de los simuladores
+# Línea 1 (Rosa) - Observatorio ↔ Pantitlán
+metro_simulator = MetroSimulator(
+    line_number=1,
+    stations_config=STATIONS_LINE1,
+    line_name="Línea 1",
+    route="Observatorio ↔ Pantitlán",
+    direction_a="Pantitlán",
+    direction_b="Observatorio",
+    train_prefix="T10"
+)
+
+# Línea 2 (Azul) - Cuatro Caminos ↔ Tasqueña  
+metro_simulator_line2 = MetroSimulator(
+    line_number=2,
+    stations_config=STATIONS_LINE2,
+    line_name="Línea 2",
+    route="Cuatro Caminos ↔ Tasqueña",
+    direction_a="Tasqueña",
+    direction_b="Cuatro Caminos",
+    train_prefix="T20"
+)
