@@ -133,7 +133,7 @@ async def create_incident_report(
                 station=station,
                 type=type,
                 level=level,
-                description=description if description else None,
+                description=description if description else "",
                 incident_datetime=incident_dt,
                 message="Reporte manual guardado exitosamente"
             )
@@ -157,7 +157,7 @@ async def create_incident_report(
                 station=extracted_data["station"],
                 type=IncidentType(extracted_data["type"]),
                 level=IncidentLevel(extracted_data["level"]),
-                description=extracted_data["description"],
+                description=extracted_data.get("description") or "",
                 incident_datetime=incident_dt
             )
             
@@ -171,7 +171,7 @@ async def create_incident_report(
                 station=extracted_data["station"],
                 type=extracted_data["type"],
                 level=extracted_data["level"],
-                description=extracted_data["description"],
+                description=extracted_data.get("description") or "",
                 incident_datetime=incident_dt,
                 message=f"Reporte procesado automáticamente con IA. Transcripción: '{transcription[:100]}...'"
             )
