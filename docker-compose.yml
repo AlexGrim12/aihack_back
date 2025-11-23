@@ -33,6 +33,7 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-your-secret-access-key}
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_S3_BUCKET: ${AWS_S3_BUCKET:-aihack-fall-detection}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-sk-your-openai-api-key-here}
     ports:
       - "80:8000"
     depends_on:

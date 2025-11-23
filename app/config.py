@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     AWS_REGION: str = "us-east-1"
     AWS_S3_BUCKET: str
     
+    # OpenAI Configuration
+    OPENAI_API_KEY: str
+    
     class Config:
         env_file = ".env"
 

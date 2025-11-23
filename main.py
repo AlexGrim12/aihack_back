@@ -1,9 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import asyncio
+from pathlib import Path
 from app.database import engine, Base
-from app.routes import auth_router, metro_router, fall_detection_router
+from app.routes import auth_router, metro_router, fall_detection_router, incident_reports_router
 from app.utils.metro_simulator import metro_simulator
 
 @asynccontextmanager
@@ -11,6 +13,9 @@ async def lifespan(app: FastAPI):
     """Maneja el ciclo de vida de la aplicación"""
     # Startup: Crear tablas y iniciar simulación
     Base.metadata.create_all(bind=engine)
+    
+    # Crear directorio de storage para audios
+    Path("storage/incidents").mkdir(parents=True, exist_ok=True)
     
     # Iniciar simulación del metro en background
     simulation_task = asyncio.create_task(metro_simulator.update_loop())
@@ -45,6 +50,10 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(metro_router)
 app.include_router(fall_detection_router)
+app.include_router(incident_reports_router)
+
+# Mount static files for audio storage
+app.mount("/storage", StaticFiles(directory="storage"), name="storage")
 
 @app.get("/")
 async def root():

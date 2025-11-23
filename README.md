@@ -15,6 +15,8 @@ Backend API desarrollado con FastAPI para aplicación Flutter, con autenticació
 - 📍 **20 estaciones reales con datos dinámicos**
 - 📸 **Detección de caídas con almacenamiento en AWS S3**
 - 🗄️ **Registro de incidentes en PostgreSQL**
+- 🎤 **Reportes de incidentes con audio y transcripción automática**
+- 🤖 **Integración con OpenAI (Whisper + GPT-4) para análisis de audio**
 
 ## Requisitos
 
@@ -22,6 +24,8 @@ Backend API desarrollado con FastAPI para aplicación Flutter, con autenticació
 - Docker y Docker Compose
 - pip
 - **Cuenta de AWS con S3** (para almacenamiento de imágenes)
+- **Cuenta de OpenAI** (para transcripción y análisis de audio)
+- **ffmpeg** (opcional, para tests de audio)
 
 ## Instalación
 
@@ -304,6 +308,136 @@ AWS_S3_BUCKET=aihack-fall-detection
 - `s3:DeleteObject` - Para eliminar imágenes
 - `s3:GetObject` - Para leer imágenes (opcional)
 
+## Endpoints de Reportes de Incidentes con Audio
+
+### 🎤 Sistema de Reportes con DOS FLUJOS:
+
+#### 1️⃣ Endpoint de Transcripción Automática (Solo Audio + IA)
+
+```http
+POST /reports/incident/automatic
+Content-Type: multipart/form-data
+
+- audio: archivo de audio (AAC, MP3, WAV, etc.)
+```
+
+**Flujo:**
+
+1. Recibe SOLO el archivo de audio
+2. Transcribe usando OpenAI Whisper
+3. Extrae información estructurada usando GPT-4
+4. Guarda el audio y los datos extraídos
+5. Retorna todos los campos extraídos
+
+**Response:**
+
+```json
+{
+  "audio_url": "http://localhost:8000/storage/incidents/audio_20240120_143000_abc123.aac",
+  "station": "Observatorio, Línea 1",
+  "type": "delay",
+  "level": "medium",
+  "description": "Retraso por falla en señalización",
+  "incident_datetime": "2024-01-20T14:30:00.000Z",
+  "message": "Reporte procesado automáticamente con IA",
+  "transcription": "Hola, estoy en la estación Observatorio..."
+}
+```
+
+#### 2️⃣ Endpoint de Llenado Manual (Audio + Formulario)
+
+```http
+POST /reports/incident/manual
+Content-Type: multipart/form-data
+
+- audio: archivo de audio
+- station: "Observatorio, Línea 1"
+- type: "delay"
+- level: "medium"
+- description: "Retraso por falla técnica" (opcional)
+- incident_datetime: "2024-01-20T14:30:00.000Z"
+```
+
+**Flujo:**
+
+1. Recibe audio + todos los campos del formulario
+2. Guarda el audio
+3. Guarda los datos en la base de datos
+4. Retorna confirmación
+
+**Response:**
+
+```json
+{
+  "audio_url": "http://localhost:8000/storage/incidents/audio_20240120_143000_abc123.aac",
+  "station": "Observatorio, Línea 1",
+  "type": "delay",
+  "level": "medium",
+  "description": "Retraso por falla técnica",
+  "incident_datetime": "2024-01-20T14:30:00.000Z",
+  "message": "Reporte manual guardado exitosamente"
+}
+```
+
+### Otros Endpoints de Reportes
+
+**Listar reportes:**
+
+```http
+GET /reports/incident/?skip=0&limit=100
+```
+
+**Obtener reporte específico:**
+
+```http
+GET /reports/incident/{id}
+```
+
+**Eliminar reporte:**
+
+```http
+DELETE /reports/incident/{id}
+```
+
+### Valores Permitidos para Reportes
+
+**Tipos de Incidente (`type`):**
+
+- `delay` - Retrasos, demoras
+- `incident` - Incidentes, emergencias
+- `maintenance` - Mantenimiento, fallas técnicas
+- `crowding` - Aglomeración, sobrecupo
+- `other` - Otros
+
+**Niveles de Severidad (`level`):**
+
+- `low` - Bajo (afectación mínima)
+- `medium` - Medio (afectación moderada)
+- `high` - Alto (afectación importante)
+- `critical` - Crítico (emergencia)
+
+### Configuración de OpenAI
+
+Para usar el endpoint de transcripción automática, configura tu API key en `.env`:
+
+```bash
+OPENAI_API_KEY=sk-your-openai-api-key-here
+```
+
+**Obtén tu API key en:** https://platform.openai.com/api-keys
+
+**Servicios utilizados:**
+
+- **Whisper API** - Transcripción de audio a texto (español)
+- **GPT-4 API** - Extracción de información estructurada
+
+**Permisos requeridos en S3:**
+
+- `s3:PutObject` - Para subir imágenes
+- `s3:PutObjectAcl` - Para hacer imágenes públicas
+- `s3:DeleteObject` - Para eliminar imágenes
+- `s3:GetObject` - Para leer imágenes (opcional)
+
 ## Integración con Flutter
 
 Para integrar este backend con tu app Flutter:
@@ -337,7 +471,106 @@ Para integrar este backend con tu app Flutter:
    }
    ```
 
-3. Ejemplo de servicio de Fall Detection en Flutter:
+3. Ejemplo de servicio de Reportes de Incidentes en Flutter:
+
+   ```dart
+   import 'package:dio/dio.dart';
+   import 'dart:io';
+
+   class IncidentReportService {
+     final dio = Dio(BaseOptions(baseUrl: 'http://localhost:8000'));
+
+     // Opción 1: Reporte automático con IA (solo audio)
+     Future<Map<String, dynamic>> submitAutomaticReport({
+       required File audioFile,
+     }) async {
+       try {
+         final formData = FormData.fromMap({
+           'audio': await MultipartFile.fromFile(
+             audioFile.path,
+             filename: audioFile.path.split('/').last,
+           ),
+         });
+
+         final response = await dio.post(
+           '/reports/incident/automatic',
+           data: formData,
+         );
+
+         return response.data;
+       } catch (e) {
+         throw Exception('Failed to submit automatic report: $e');
+       }
+     }
+
+     // Opción 2: Reporte manual (audio + formulario)
+     Future<Map<String, dynamic>> submitManualReport({
+       required File audioFile,
+       required String station,
+       required String type,
+       required String level,
+       String? description,
+       required DateTime incidentDateTime,
+     }) async {
+       try {
+         final formData = FormData.fromMap({
+           'audio': await MultipartFile.fromFile(
+             audioFile.path,
+             filename: audioFile.path.split('/').last,
+           ),
+           'station': station,
+           'type': type,
+           'level': level,
+           'description': description ?? '',
+           'incident_datetime': incidentDateTime.toIso8601String(),
+         });
+
+         final response = await dio.post(
+           '/reports/incident/manual',
+           data: formData,
+         );
+
+         return response.data;
+       } catch (e) {
+         throw Exception('Failed to submit manual report: $e');
+       }
+     }
+
+     // Obtener lista de reportes
+     Future<List<dynamic>> getReports({int skip = 0, int limit = 100}) async {
+       try {
+         final response = await dio.get(
+           '/reports/incident/',
+           queryParameters: {'skip': skip, 'limit': limit},
+         );
+         return response.data;
+       } catch (e) {
+         throw Exception('Failed to get reports: $e');
+       }
+     }
+
+     // Obtener reporte específico
+     Future<Map<String, dynamic>> getReport(int id) async {
+       try {
+         final response = await dio.get('/reports/incident/$id');
+         return response.data;
+       } catch (e) {
+         throw Exception('Failed to get report: $e');
+       }
+     }
+
+     // Eliminar reporte
+     Future<void> deleteReport(int id) async {
+       try {
+         await dio.delete('/reports/incident/$id');
+       } catch (e) {
+         throw Exception('Failed to delete report: $e');
+       }
+     }
+   }
+   ```
+
+4. Ejemplo de servicio de Fall Detection en Flutter:
 
    ```dart
    import 'package:dio/dio.dart';
@@ -410,7 +643,7 @@ Para integrar este backend con tu app Flutter:
    }
    ```
 
-4. Ejemplo de uso en un Widget:
+5. Ejemplo de uso en un Widget:
 
    ```dart
    import 'package:flutter/material.dart';
@@ -564,7 +797,7 @@ Para integrar este backend con tu app Flutter:
 
    ```
 
-5. Ejemplo de servicio del Metro en Flutter:
+6. Ejemplo de servicio del Metro en Flutter:
 
    ```dart
    import 'package:dio/dio.dart';
@@ -622,7 +855,280 @@ Para integrar este backend con tu app Flutter:
    }
    ```
 
-6. Ejemplo de uso en un Widget:
+7. Ejemplo de uso de Reportes de Incidentes en un Widget:
+
+   ```dart
+   import 'package:flutter/material.dart';
+   import 'package:flutter_sound/flutter_sound.dart';
+   import 'dart:io';
+
+   class ReportIncidentScreen extends StatefulWidget {
+     @override
+     _ReportIncidentScreenState createState() => _ReportIncidentScreenState();
+   }
+
+   class _ReportIncidentScreenState extends State<ReportIncidentScreen> {
+     final IncidentReportService _service = IncidentReportService();
+     final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
+
+     File? _audioFile;
+     bool _isRecording = false;
+     bool _isLoading = false;
+
+     String _station = 'Observatorio, Línea 1';
+     String _type = 'delay';
+     String _level = 'medium';
+     String _description = '';
+
+     @override
+     void initState() {
+       super.initState();
+       _initRecorder();
+     }
+
+     Future<void> _initRecorder() async {
+       await _recorder.openRecorder();
+     }
+
+     Future<void> _startRecording() async {
+       final path = '${Directory.systemTemp.path}/incident_audio.aac';
+       await _recorder.startRecorder(toFile: path);
+       setState(() {
+         _isRecording = true;
+       });
+     }
+
+     Future<void> _stopRecording() async {
+       final path = await _recorder.stopRecorder();
+       setState(() {
+         _isRecording = false;
+         _audioFile = File(path!);
+       });
+     }
+
+     // Opción 1: Envío automático con IA
+     Future<void> _submitAutomaticReport() async {
+       if (_audioFile == null) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Por favor graba un audio primero')),
+         );
+         return;
+       }
+
+       setState(() {
+         _isLoading = true;
+       });
+
+       try {
+         final result = await _service.submitAutomaticReport(
+           audioFile: _audioFile!,
+         );
+
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Reporte enviado: ${result['message']}')),
+         );
+
+         // Mostrar datos extraídos
+         showDialog(
+           context: context,
+           builder: (context) => AlertDialog(
+             title: Text('Reporte Procesado'),
+             content: Column(
+               mainAxisSize: MainAxisSize.min,
+               crossAxisAlignment: CrossAxisAlignment.start,
+               children: [
+                 Text('Estación: ${result['station']}'),
+                 Text('Tipo: ${result['type']}'),
+                 Text('Nivel: ${result['level']}'),
+                 Text('Descripción: ${result['description']}'),
+               ],
+             ),
+             actions: [
+               TextButton(
+                 onPressed: () => Navigator.pop(context),
+                 child: Text('OK'),
+               ),
+             ],
+           ),
+         );
+
+         Navigator.pop(context);
+       } catch (e) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error: $e')),
+         );
+       } finally {
+         setState(() {
+           _isLoading = false;
+         });
+       }
+     }
+
+     // Opción 2: Envío manual con formulario
+     Future<void> _submitManualReport() async {
+       if (_audioFile == null) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Por favor graba un audio primero')),
+         );
+         return;
+       }
+
+       setState(() {
+         _isLoading = true;
+       });
+
+       try {
+         final result = await _service.submitManualReport(
+           audioFile: _audioFile!,
+           station: _station,
+           type: _type,
+           level: _level,
+           description: _description.isEmpty ? null : _description,
+           incidentDateTime: DateTime.now(),
+         );
+
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text(result['message'])),
+         );
+
+         Navigator.pop(context);
+       } catch (e) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Error: $e')),
+         );
+       } finally {
+         setState(() {
+           _isLoading = false;
+         });
+       }
+     }
+
+     @override
+     Widget build(BuildContext context) {
+       return Scaffold(
+         appBar: AppBar(title: Text('Reportar Incidente')),
+         body: Padding(
+           padding: EdgeInsets.all(16),
+           child: Column(
+             children: [
+               // Botón de grabación
+               ElevatedButton.icon(
+                 onPressed: _isRecording ? _stopRecording : _startRecording,
+                 icon: Icon(_isRecording ? Icons.stop : Icons.mic),
+                 label: Text(_isRecording ? 'Detener Grabación' : 'Grabar Audio'),
+                 style: ElevatedButton.styleFrom(
+                   backgroundColor: _isRecording ? Colors.red : Colors.blue,
+                 ),
+               ),
+
+               if (_audioFile != null)
+                 Text('✓ Audio grabado'),
+
+               SizedBox(height: 24),
+
+               // Opciones de envío
+               Text('Selecciona el tipo de reporte:',
+                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+               SizedBox(height: 16),
+
+               // Botón para envío automático con IA
+               ElevatedButton(
+                 onPressed: _isLoading ? null : _submitAutomaticReport,
+                 child: _isLoading
+                     ? CircularProgressIndicator()
+                     : Text('Enviar con Transcripción Automática (IA)'),
+               ),
+
+               SizedBox(height: 16),
+               Divider(),
+               SizedBox(height: 16),
+
+               // Formulario manual
+               Text('O llena el formulario manualmente:'),
+
+               DropdownButtonFormField<String>(
+                 value: _station,
+                 items: [
+                   'Observatorio, Línea 1',
+                   'Tacubaya, Línea 1',
+                   'Juanacatlán, Línea 1',
+                   // ... más estaciones
+                 ].map((station) {
+                   return DropdownMenuItem(value: station, child: Text(station));
+                 }).toList(),
+                 onChanged: (value) => setState(() => _station = value!),
+                 decoration: InputDecoration(labelText: 'Estación'),
+               ),
+
+               DropdownButtonFormField<String>(
+                 value: _type,
+                 items: [
+                   {'value': 'delay', 'label': 'Retraso'},
+                   {'value': 'incident', 'label': 'Incidente'},
+                   {'value': 'maintenance', 'label': 'Mantenimiento'},
+                   {'value': 'crowding', 'label': 'Aglomeración'},
+                   {'value': 'other', 'label': 'Otro'},
+                 ].map((item) {
+                   return DropdownMenuItem(
+                     value: item['value'],
+                     child: Text(item['label']!),
+                   );
+                 }).toList(),
+                 onChanged: (value) => setState(() => _type = value!),
+                 decoration: InputDecoration(labelText: 'Tipo de Incidente'),
+               ),
+
+               DropdownButtonFormField<String>(
+                 value: _level,
+                 items: [
+                   {'value': 'low', 'label': 'Bajo'},
+                   {'value': 'medium', 'label': 'Medio'},
+                   {'value': 'high', 'label': 'Alto'},
+                   {'value': 'critical', 'label': 'Crítico'},
+                 ].map((item) {
+                   return DropdownMenuItem(
+                     value: item['value'],
+                     child: Text(item['label']!),
+                   );
+                 }).toList(),
+                 onChanged: (value) => setState(() => _level = value!),
+                 decoration: InputDecoration(labelText: 'Nivel de Severidad'),
+               ),
+
+               TextField(
+                 onChanged: (value) => _description = value,
+                 decoration: InputDecoration(
+                   labelText: 'Descripción (opcional)',
+                 ),
+                 maxLines: 2,
+               ),
+
+               SizedBox(height: 16),
+
+               // Botón para envío manual
+               ElevatedButton(
+                 onPressed: _isLoading ? null : _submitManualReport,
+                 child: _isLoading
+                     ? CircularProgressIndicator()
+                     : Text('Enviar Reporte Manual'),
+               ),
+             ],
+           ),
+         ),
+       );
+     }
+
+     @override
+     void dispose() {
+       _recorder.closeRecorder();
+       super.dispose();
+     }
+   }
+   ```
+
+8. Ejemplo de uso en un Widget:
+
+   ````
 
    ```dart
    class MetroMapScreen extends StatefulWidget {
@@ -705,7 +1211,7 @@ Para integrar este backend con tu app Flutter:
        );
      }
    }
-   ```
+   ````
 
 ## Docker
 
@@ -807,6 +1313,38 @@ curl -X POST http://localhost:8000/falldetection \
 
 # Listar incidentes
 curl http://localhost:8000/falldetection | python3 -m json.tool
+```
+
+### Probar endpoints de reportes de incidentes con audio
+
+```bash
+# Ejecutar script de prueba completo
+./test_incident_reports.sh
+
+# O probar manualmente:
+
+# 1. Endpoint manual (audio + formulario)
+curl -X POST http://localhost:8000/reports/incident/manual \
+  -F "audio=@ruta/a/audio.aac" \
+  -F "station=Observatorio, Línea 1" \
+  -F "type=delay" \
+  -F "level=medium" \
+  -F "description=Retraso por falla técnica" \
+  -F "incident_datetime=2024-01-20T14:30:00.000Z"
+
+# 2. Endpoint automático (solo audio + IA)
+# Requiere OPENAI_API_KEY configurada
+curl -X POST http://localhost:8000/reports/incident/automatic \
+  -F "audio=@ruta/a/audio.aac"
+
+# 3. Listar reportes
+curl http://localhost:8000/reports/incident/ | python3 -m json.tool
+
+# 4. Obtener reporte específico
+curl http://localhost:8000/reports/incident/1 | python3 -m json.tool
+
+# 5. Eliminar reporte
+curl -X DELETE http://localhost:8000/reports/incident/1
 ```
 
 ## Seguridad
