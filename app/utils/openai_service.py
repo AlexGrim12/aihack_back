@@ -1,4 +1,5 @@
 import json
+import io
 from typing import Dict, Any
 from openai import OpenAI
 from fastapi import UploadFile
@@ -14,33 +15,44 @@ class OpenAIService:
     
     async def transcribe_audio(self, audio_file: UploadFile) -> str:
         """
-        Transcribe audio to text using OpenAI Whisper API.
+        Transcribe audio file using OpenAI Whisper API
         
         Args:
-            audio_file: The uploaded audio file
+            audio_file: Audio file to transcribe
             
         Returns:
-            str: Transcribed text in Spanish
+            Transcription text
+            
+        Raises:
+            Exception: If transcription fails
         """
-        # Read audio file content
-        audio_content = await audio_file.read()
-        
-        # Reset file pointer for potential reuse
-        await audio_file.seek(0)
-        
-        # Create a file-like object for OpenAI with the correct filename/extension
-        # OpenAI uses the filename extension to detect the audio format
-        filename = audio_file.filename or "audio.wav"
-        audio_file_obj = (filename, audio_content, audio_file.content_type or "audio/wav")
-        
-        # Transcribe using Whisper
-        transcript = self.client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file_obj,
-            language="es"  # Spanish
-        )
-        
-        return transcript.text
+        try:
+            print(f"🎤 Starting transcription for file: {audio_file.filename}")
+            print(f"📋 Content type: {audio_file.content_type}")
+            
+            # Read file content
+            audio_content = await audio_file.read()
+            print(f"📦 Audio content size: {len(audio_content)} bytes")
+            
+            # Create a file-like object
+            audio_file_obj = io.BytesIO(audio_content)
+            audio_file_obj.name = audio_file.filename
+            
+            print(f"🔊 Sending to Whisper API with filename: {audio_file_obj.name}")
+            
+            # Transcribe using Whisper
+            response = self.client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file_obj,
+                language="es"
+            )
+            
+            print(f"✅ Transcription successful: {response.text[:100]}...")
+            return response.text
+            
+        except Exception as e:
+            print(f"❌ Transcription error: {str(e)}")
+            raise Exception(f"Error transcribing audio: {str(e)}")
     
     async def extract_incident_data(self, transcription: str) -> Dict[str, Any]:
         """

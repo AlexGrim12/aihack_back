@@ -143,13 +143,27 @@ async def create_incident_report(
             # Usuario solo envió audio, usamos OpenAI para extraer datos
             
             try:
+                print("🤖 === INICIANDO PROCESAMIENTO CON IA ===")
+                print(f"📁 Audio file: {audio.filename}")
+                print(f"📋 Content type: {audio.content_type}")
+                print(f"🔗 Audio saved at: {audio_url}")
+                
+                # Reset file pointer before transcription
+                await audio.seek(0)
+                print("🔄 File pointer reset to beginning")
+                
                 # 1. Transcribe audio using Whisper
+                print("🎯 Step 1/3: Transcribing audio with Whisper...")
                 transcription = await openai_service.transcribe_audio(audio)
+                print(f"✅ Transcription completed: '{transcription[:150]}...'")
                 
                 # 2. Extract structured data using GPT
+                print("🎯 Step 2/3: Extracting structured data with GPT...")
                 extracted_data = await openai_service.extract_incident_data(transcription)
+                print(f"✅ Data extracted: {extracted_data}")
                 
                 # 3. Parse incident_datetime
+                print("🎯 Step 3/3: Saving to database...")
                 incident_dt = parser.isoparse(extracted_data["incident_datetime"])
                 
                 # 4. Save to database
@@ -166,6 +180,8 @@ async def create_incident_report(
                 db.commit()
                 db.refresh(db_incident)
                 
+                print("✅ === PROCESAMIENTO COMPLETADO EXITOSAMENTE ===")
+                
                 # 5. Return response
                 return IncidentReportResponse(
                     audio_url=audio_url,
@@ -178,6 +194,10 @@ async def create_incident_report(
                 )
             except Exception as ai_error:
                 # Si falla el procesamiento con IA, eliminar el audio y reportar error específico
+                print(f"❌ === ERROR EN PROCESAMIENTO CON IA ===")
+                print(f"❌ Error details: {str(ai_error)}")
+                import traceback
+                print(f"📋 Full traceback:\n{traceback.format_exc()}")
                 audio_handler.delete_audio(audio_url)
                 raise HTTPException(
                     status_code=500,
@@ -212,8 +232,12 @@ async def create_incident_report_automatic_deprecated(
     
     Este endpoint redirige al nuevo endpoint principal.
     """
+    print("📌 /automatic endpoint called (deprecated)")
+    print(f"📁 Received audio: {audio.filename}, type: {audio.content_type}")
+    
     # Reset file pointer in case it was read before
     await audio.seek(0)
+    print("🔄 File pointer reset to beginning")
     
     return await create_incident_report(
         audio=audio,
