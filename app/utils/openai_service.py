@@ -28,8 +28,10 @@ class OpenAIService:
         # Reset file pointer for potential reuse
         await audio_file.seek(0)
         
-        # Create a file-like object for OpenAI
-        audio_file_obj = ("audio.aac", audio_content, audio_file.content_type or "audio/aac")
+        # Create a file-like object for OpenAI with the correct filename/extension
+        # OpenAI uses the filename extension to detect the audio format
+        filename = audio_file.filename or "audio.wav"
+        audio_file_obj = (filename, audio_content, audio_file.content_type or "audio/wav")
         
         # Transcribe using Whisper
         transcript = self.client.audio.transcriptions.create(
