@@ -37,13 +37,22 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS for Flutter app
+# Configure CORS for Flutter app and Next.js frontend
+# Permitir todos los orígenes de Vercel y localhost
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especifica los orígenes permitidos
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001", 
+        "https://*.vercel.app",
+        "https://*.vercel.com",
+        "https://mobility-ai-operations-dashboard.vercel.app"
+        "*"  # Permite cualquier origen para desarrollo
+    ],
+    allow_credentials=False,  # Cambiado a False para permitir allow_origins=["*"]
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include routers
