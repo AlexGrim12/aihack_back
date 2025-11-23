@@ -6,7 +6,7 @@ class Train(BaseModel):
     train_id: str
     current_station: str
     next_station: str
-    direction: Literal["Pantitlán", "Observatorio"]
+    direction: Literal["Pantitlán", "Observatorio", "Tasqueña", "Cuatro Caminos"]
     progress_to_next: float = Field(ge=0.0, le=1.0, description="Progreso hacia siguiente estación (0.0 a 1.0)")
     wagons: int = 6
     passengers_per_wagon: List[int] = Field(default_factory=list, description="Pasajeros por vagón")
