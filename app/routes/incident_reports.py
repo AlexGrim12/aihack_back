@@ -269,8 +269,9 @@ async def list_incident_reports(
             station=incident.station,
             type=incident.type.value,
             level=incident.level.value,
-            description=incident.description,
-            incident_datetime=incident.incident_datetime
+            description=incident.description if incident.description else "",
+            incident_datetime=incident.incident_datetime,
+            message=None
         )
         for incident in incidents
     ]
@@ -294,8 +295,9 @@ async def get_incident_report(
         station=incident.station,
         type=incident.type.value,
         level=incident.level.value,
-        description=incident.description,
-        incident_datetime=incident.incident_datetime
+        description=incident.description if incident.description else "",
+        incident_datetime=incident.incident_datetime,
+        message=None
     )
 
 
