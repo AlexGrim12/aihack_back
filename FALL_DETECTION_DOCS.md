@@ -9,12 +9,14 @@ Se ha implementado exitosamente un sistema completo de detección y registro de 
 ### Endpoint Principal: POST /falldetection
 
 **Entrada:**
+
 - `image` (file): Imagen del incidente
 - `station` (string): Estación donde ocurrió
 - `detected_object` (string): Objeto detectado (persona, bicicleta, etc.)
 - `incident_datetime` (datetime): Fecha y hora en formato ISO 8601
 
 **Proceso:**
+
 1. Valida que el archivo sea una imagen
 2. Genera nombre único: `fall-detections/{timestamp}_{uuid}.{extension}`
 3. Sube la imagen a AWS S3 con permisos públicos
@@ -22,6 +24,7 @@ Se ha implementado exitosamente un sistema completo de detección y registro de 
 5. Retorna el incidente creado con todos los datos
 
 **Salida:**
+
 ```json
 {
   "message": "Incidente registrado exitosamente",
@@ -39,6 +42,7 @@ Se ha implementado exitosamente un sistema completo de detección y registro de 
 ### Endpoints Adicionales
 
 1. **GET /falldetection** - Lista todos los incidentes
+
    - Soporta paginación (`skip`, `limit`)
    - Ordenados por fecha descendente
 
@@ -53,20 +57,24 @@ Se ha implementado exitosamente un sistema completo de detección y registro de 
 ### Nuevos Archivos
 
 1. **app/models/fall_detection.py**
+
    - Modelo SQLAlchemy `FallDetection`
    - Campos: id, image_url, station, detected_object, incident_datetime, created_at
 
 2. **app/schemas/fall_detection.py**
+
    - `FallDetectionCreate` - Schema para crear incidente
    - `FallDetectionResponse` - Schema de respuesta
    - `FallDetectionUploadResponse` - Respuesta del POST
 
 3. **app/utils/s3_handler.py**
+
    - Clase `S3Handler` para interactuar con AWS S3
    - `upload_image()` - Sube imagen y retorna URL
    - `delete_image()` - Elimina imagen de S3
 
 4. **app/routes/fall_detection.py**
+
    - Router con todos los endpoints
    - Manejo de multipart/form-data
    - Validaciones y manejo de errores
@@ -79,10 +87,12 @@ Se ha implementado exitosamente un sistema completo de detección y registro de 
 ### Archivos Modificados
 
 1. **requirements.txt**
+
    - Agregado: `boto3==1.34.19`
    - Agregado: `python-dateutil==2.8.2`
 
 2. **app/config.py**
+
    - Agregadas variables de AWS S3:
      - `AWS_ACCESS_KEY_ID`
      - `AWS_SECRET_ACCESS_KEY`
@@ -90,21 +100,27 @@ Se ha implementado exitosamente un sistema completo de detección y registro de 
      - `AWS_S3_BUCKET`
 
 3. **.env y .env.example**
+
    - Configuración de credenciales AWS
 
 4. **docker-compose.yml**
+
    - Variables de entorno para AWS en el contenedor backend
 
 5. **main.py**
+
    - Importado y registrado `fall_detection_router`
 
-6. **app/models/__init__.py**
+6. **app/models/**init**.py**
+
    - Exportado modelo `FallDetection`
 
-7. **app/routes/__init__.py**
+7. **app/routes/**init**.py**
+
    - Exportado `fall_detection_router`
 
-8. **app/schemas/__init__.py**
+8. **app/schemas/**init**.py**
+
    - Exportados schemas de fall detection
 
 9. **README.md**
@@ -118,15 +134,18 @@ Se ha implementado exitosamente un sistema completo de detección y registro de 
 ### AWS S3
 
 1. **Crear un bucket en S3:**
+
    ```bash
    aws s3 mb s3://aihack-fall-detection --region us-east-1
    ```
 
 2. **Configurar permisos del bucket:**
+
    - Permitir acceso público a los objetos
    - O configurar políticas específicas
 
 3. **Política de IAM requerida:**
+
    ```json
    {
      "Version": "2012-10-17",
@@ -199,6 +218,7 @@ curl -X DELETE http://localhost:8000/falldetection/1
 ### Desde Flutter
 
 Ver ejemplos completos en el README principal, incluyendo:
+
 - Servicio de Fall Detection
 - Widget de reportar incidente
 - Toma de fotos con cámara
@@ -233,10 +253,12 @@ Flutter App
 ### Seguridad
 
 1. **ACL Pública:** Las imágenes se suben con `ACL: public-read`
+
    - Cualquiera con la URL puede ver la imagen
    - Considera usar URLs firmadas para mayor seguridad
 
 2. **Validación de Archivos:**
+
    - Solo acepta archivos con `content_type` de imagen
    - No valida contenido real del archivo (considera agregar)
 
@@ -247,6 +269,7 @@ Flutter App
 ### Performance
 
 1. **Upload Asíncrono:**
+
    - El upload a S3 bloquea la respuesta
    - Considera usar workers o procesamiento en background
 
@@ -257,6 +280,7 @@ Flutter App
 ### Costos
 
 1. **AWS S3:**
+
    - Storage: ~$0.023 por GB/mes
    - PUT requests: ~$0.005 por 1000 requests
    - GET requests: ~$0.0004 por 1000 requests
@@ -271,18 +295,22 @@ Flutter App
 ## 🚀 Mejoras Futuras
 
 1. **Compresión de Imágenes:**
+
    - Reducir tamaño antes de subir a S3
    - Generar thumbnails
 
 2. **URLs Firmadas:**
+
    - Mayor seguridad
    - Control de acceso temporal
 
 3. **Procesamiento de Imágenes:**
+
    - Detección automática con ML
    - Extracción de metadata
 
 4. **Notificaciones:**
+
    - Alertas en tiempo real
    - Webhooks para sistemas externos
 

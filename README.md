@@ -298,6 +298,7 @@ AWS_S3_BUCKET=aihack-fall-detection
 ```
 
 **Permisos requeridos en S3:**
+
 - `s3:PutObject` - Para subir imágenes
 - `s3:PutObjectAcl` - Para hacer imágenes públicas
 - `s3:DeleteObject` - Para eliminar imágenes
@@ -497,7 +498,7 @@ Para integrar este backend con tu app Flutter:
                  child: Text('Tomar Foto'),
                ),
                SizedBox(height: 16),
-               
+
                // Selector de estación
                DropdownButtonFormField<String>(
                  value: _station,
@@ -519,7 +520,7 @@ Para integrar este backend con tu app Flutter:
                  },
                  decoration: InputDecoration(labelText: 'Estación'),
                ),
-               
+
                // Selector de objeto detectado
                DropdownButtonFormField<String>(
                  value: _detectedObject,
@@ -541,9 +542,9 @@ Para integrar este backend con tu app Flutter:
                  },
                  decoration: InputDecoration(labelText: 'Objeto Detectado'),
                ),
-               
+
                SizedBox(height: 24),
-               
+
                // Botón de envío
                ElevatedButton(
                  onPressed: _isLoading ? null : _submitReport,
@@ -558,9 +559,12 @@ Para integrar este backend con tu app Flutter:
      }
    }
    ```
+
    ```
 
-3. Ejemplo de servicio del Metro en Flutter:
+   ```
+
+5. Ejemplo de servicio del Metro en Flutter:
 
    ```dart
    import 'package:dio/dio.dart';
@@ -618,7 +622,7 @@ Para integrar este backend con tu app Flutter:
    }
    ```
 
-4. Ejemplo de uso en un Widget:
+6. Ejemplo de uso en un Widget:
 
    ```dart
    class MetroMapScreen extends StatefulWidget {
