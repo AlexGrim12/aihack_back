@@ -1,15 +1,35 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+import asyncio
 from app.database import engine, Base
-from app.routes import auth_router
+from app.routes import auth_router, metro_router
+from app.utils.metro_simulator import metro_simulator
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Maneja el ciclo de vida de la aplicación"""
+    # Startup: Crear tablas y iniciar simulación
+    Base.metadata.create_all(bind=engine)
+    
+    # Iniciar simulación del metro en background
+    simulation_task = asyncio.create_task(metro_simulator.update_loop())
+    
+    yield
+    
+    # Shutdown: Detener simulación
+    metro_simulator.stop()
+    simulation_task.cancel()
+    try:
+        await simulation_task
+    except asyncio.CancelledError:
+        pass
 
 app = FastAPI(
     title="AIHack Backend API",
-    description="Backend API with JWT authentication for Flutter app",
-    version="1.0.0"
+    description="Backend API with JWT authentication and real-time metro simulation for Flutter app",
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # Configure CORS for Flutter app
@@ -23,6 +43,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(metro_router)
 
 @app.get("/")
 async def root():
