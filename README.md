@@ -2,6 +2,14 @@
 
 Backend API desarrollado con FastAPI para aplicación Flutter, con autenticación JWT y PostgreSQL.
 
+## 📦 Repositorios Relacionados
+
+Este proyecto es parte de un ecosistema de aplicaciones para movilidad urbana inteligente:
+
+- **[mobilityai](https://github.com/AlexGrim12/mobilityai)** - Aplicación móvil Flutter para usuarios finales del sistema de transporte
+- **[mobilityAI_Operations_Dashboard](https://github.com/DavidFarfanC/mobilityAI_Operations_Dashboard)** - Dashboard de operaciones y monitoreo en tiempo real
+- **[mobilityAI_fall_detection](https://github.com/ruyca/mobilityAI_fall_detection)** - Sistema de detección de caídas con visión por computadora
+
 ## Características
 
 - 🔐 Autenticación JWT
