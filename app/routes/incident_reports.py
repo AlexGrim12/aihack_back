@@ -142,39 +142,47 @@ async def create_incident_report(
             # FLUJO A: TRANSCRIPCIÓN AUTOMÁTICA CON IA
             # Usuario solo envió audio, usamos OpenAI para extraer datos
             
-            # 1. Transcribe audio using Whisper
-            transcription = await openai_service.transcribe_audio(audio)
-            
-            # 2. Extract structured data using GPT
-            extracted_data = await openai_service.extract_incident_data(transcription)
-            
-            # 3. Parse incident_datetime
-            incident_dt = parser.isoparse(extracted_data["incident_datetime"])
-            
-            # 4. Save to database
-            db_incident = IncidentReport(
-                audio_url=audio_url,
-                station=extracted_data["station"],
-                type=IncidentType(extracted_data["type"]),
-                level=IncidentLevel(extracted_data["level"]),
-                description=extracted_data.get("description") or "",
-                incident_datetime=incident_dt
-            )
-            
-            db.add(db_incident)
-            db.commit()
-            db.refresh(db_incident)
-            
-            # 5. Return response
-            return IncidentReportResponse(
-                audio_url=audio_url,
-                station=extracted_data["station"],
-                type=extracted_data["type"],
-                level=extracted_data["level"],
-                description=extracted_data.get("description") or "",
-                incident_datetime=incident_dt,
-                message=f"Reporte procesado automáticamente con IA. Transcripción: '{transcription[:100]}...'"
-            )
+            try:
+                # 1. Transcribe audio using Whisper
+                transcription = await openai_service.transcribe_audio(audio)
+                
+                # 2. Extract structured data using GPT
+                extracted_data = await openai_service.extract_incident_data(transcription)
+                
+                # 3. Parse incident_datetime
+                incident_dt = parser.isoparse(extracted_data["incident_datetime"])
+                
+                # 4. Save to database
+                db_incident = IncidentReport(
+                    audio_url=audio_url,
+                    station=extracted_data["station"],
+                    type=IncidentType(extracted_data["type"]),
+                    level=IncidentLevel(extracted_data["level"]),
+                    description=extracted_data.get("description") or "",
+                    incident_datetime=incident_dt
+                )
+                
+                db.add(db_incident)
+                db.commit()
+                db.refresh(db_incident)
+                
+                # 5. Return response
+                return IncidentReportResponse(
+                    audio_url=audio_url,
+                    station=extracted_data["station"],
+                    type=extracted_data["type"],
+                    level=extracted_data["level"],
+                    description=extracted_data.get("description") or "",
+                    incident_datetime=incident_dt,
+                    message=f"Reporte procesado automáticamente con IA. Transcripción: '{transcription[:100]}...'"
+                )
+            except Exception as ai_error:
+                # Si falla el procesamiento con IA, eliminar el audio y reportar error específico
+                audio_handler.delete_audio(audio_url)
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Error en procesamiento con IA: {str(ai_error)}"
+                )
         
     except HTTPException:
         # Re-raise HTTP exceptions
