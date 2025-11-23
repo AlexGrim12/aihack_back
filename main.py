@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import asyncio
 from app.database import engine, Base
-from app.routes import auth_router, metro_router
+from app.routes import auth_router, metro_router, fall_detection_router
 from app.utils.metro_simulator import metro_simulator
 
 @asynccontextmanager
@@ -27,7 +27,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AIHack Backend API",
-    description="Backend API with JWT authentication and real-time metro simulation for Flutter app",
+    description="Backend API with JWT authentication, real-time metro simulation, and fall detection for Flutter app",
     version="1.0.0",
     lifespan=lifespan
 )
@@ -44,6 +44,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(metro_router)
+app.include_router(fall_detection_router)
 
 @app.get("/")
 async def root():

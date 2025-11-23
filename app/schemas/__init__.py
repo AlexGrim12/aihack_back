@@ -7,6 +7,11 @@ from app.schemas.user import (
     TokenData,
     LoginResponse
 )
+from app.schemas.fall_detection import (
+    FallDetectionCreate,
+    FallDetectionResponse,
+    FallDetectionUploadResponse
+)
 
 __all__ = [
     "UserBase",
@@ -15,5 +20,8 @@ __all__ = [
     "UserResponse",
     "Token",
     "TokenData",
-    "LoginResponse"
+    "LoginResponse",
+    "FallDetectionCreate",
+    "FallDetectionResponse",
+    "FallDetectionUploadResponse"
 ]
