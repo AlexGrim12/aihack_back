@@ -212,6 +212,9 @@ async def create_incident_report_automatic_deprecated(
     
     Este endpoint redirige al nuevo endpoint principal.
     """
+    # Reset file pointer in case it was read before
+    await audio.seek(0)
+    
     return await create_incident_report(
         audio=audio,
         station=None,
